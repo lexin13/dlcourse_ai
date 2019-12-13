@@ -15,13 +15,9 @@ def softmax(predictions):
     '''
     # TODO implement softmax
     # Your final implementation shouldn't have any loops
-    p = np.copy(predictions) - np.max(predictions)
+    p = np.copy(predictions) - np.max(predictions, axis=1).reshape(-1, 1)
     e = np.exp(p)
-    # print(e)
-    return e / e.sum()
-
-    # raise Exception("Not implemented!")
-
+    return e / e.sum(axis=1).reshape(-1, 1)
 
 def cross_entropy_loss(probs, target_index):
     '''
@@ -38,14 +34,14 @@ def cross_entropy_loss(probs, target_index):
     '''
     # TODO implement cross-entropy
     # Your final implementation shouldn't have any loops
-    
-    print('# cross_entropy_loss')
-    print('probs:', probs)
-    print('target_index:', target_index)
-    print(-np.log(probs))
-    print(-np.log(probs)[target_index])
+    if np.ndim(probs) == 1:
+      return -np.log(probs[target_index])
 
-    return -np.log(probs)[target_index]
+    plog = -np.log(probs)
+    plog_by_idx = plog[range(probs.shape[0]), target_index.flatten()]
+    loss = plog_by_idx.mean()
+    
+    return loss
 
     #raise Exception("Not implemented!")
 
@@ -70,11 +66,16 @@ def softmax_with_cross_entropy(predictions, target_index):
     # raise Exception("Not implemented!")
     dprediction = softmax(predictions)
     loss = cross_entropy_loss(dprediction, target_index)
-
     grad = np.zeros_like(predictions)
-    grad[target_index] = 1
-    grad = dprediction - grad
 
+    if np.ndim(predictions) == 1:
+      grad[target_index] = 1
+      grad = (dprediction - grad)
+    else:
+      i = np.arange(grad.shape[0])
+      grad[i, target_index.flatten()] = 1
+      grad = (dprediction - grad) / dprediction.shape[0]
+    
     return loss, grad
 
 
